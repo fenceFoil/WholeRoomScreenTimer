@@ -10,7 +10,7 @@ Features:
   - ... so that you can have speakers attached which can be heard through your whole living space, regardless of muting, headphones, etc. on whatever you're doing currently.
 - Website with time left before next sound and some controls
 
-INSERT SCREENSHOT OF WEBSITE
+![Screenshot of control website](docs/Screenshot%202023-11-24%20at%2023-05-07%20ScreenTimer.png)
 
 ## Install
 
