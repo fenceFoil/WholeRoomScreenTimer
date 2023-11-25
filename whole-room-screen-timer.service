@@ -1,0 +1,15 @@
+[Unit]
+Description=Whole Room Screen Timer
+Wants=network.target
+After=syslog.target network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/whole-room-screen-timer/
+ExecStart=/usr/bin/python3 /opt/whole-room-screen-timer/app.py
+Restart=always
+RestartSec=10
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

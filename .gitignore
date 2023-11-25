@@ -1,0 +1,4 @@
+.vscode
+
+# Only add to project if .wav doesn't work.
+media/*.ogg

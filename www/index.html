@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<title>ScreenTimer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="normalize.css">
+<script src="textfill.min.js"></script>
+
+<style>
+    @font-face {
+        font-family: "VCR";
+        src: url("VCR_OSD_MONO_1.001.ttf") format("truetype");
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100dvh;
+        font-family: "VCR";
+        font-size: 1.5rem;
+    }
+
+    #timer {
+        flex: 1;
+        display: grid;
+        place-items: center;
+        color: cyan;
+        /*text-shadow: -0.4em -0.4em 0 #000, 0.4em -0.4em 0 #000, -0.4em 0.4em 0 #000, 0.4em 0.4em 0 #000;*/
+        background-color: black;
+    }
+
+    #controls {
+        flex: 0;
+        display: flex;
+        flex-direction: row;
+        gap: 0.5em;
+        background-color: black;
+        color: white;
+        padding: 0.5em;
+    }
+
+    button {
+        text-transform: uppercase;
+    }
+
+    #turnOffTime {
+        width: 6ch;
+        text-align: center;
+    }
+</style>
+
+<body x-data="d">
+    <script src="alpine.min.js" defer></script>
+
+    <div id="controls">
+        <button @click="doRestart">Restart</button>
+        <button @click="doStop">Stop</button>
+        <!--
+        Don't bother with autoTurnOffTime yet
+
+        <div style="flex:1"></div>
+        Turn Off At:
+        <input type="text" x-model="lastStatus.autoTurnOffTime" id="turnOffTime" @input.debounce="updateTurnOffTime"></input>
+        <button @click="toggleAutoStopActive" x-text="isAutoStopActive()?'(Active)':'(Disabled)'"></button>
+        -->
+    </div>
+
+    <div id="timer">
+        <span x-text="timerDisplay">12:34</span>
+    </div>
+
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('d', () => ({
+                lastStatus: {
+                    timerRunning: null,
+                    secondsUntilNextAlert: null,
+                    autoTurnOffTime: null,
+                    autoTurnOffEnabled: false
+                },
+                timerDisplay: "",
+
+                async init() {
+                    // Every 0.2s, update the timer text
+                    setInterval(() => {
+                        this.timerDisplay = this.getProjectedTimeLeft();
+                    }, 200);
+                    // Every several seconds, update the status of the timer
+                    this.updateStatus(await(await fetch('screen-timer/status')).json());
+                    let that = this; 
+                    setInterval(async ()=>{
+                        that.updateStatus(await(await fetch('screen-timer/status')).json());
+                    }, 7000);
+                },
+
+                updateStatus(newStatusJson) {
+                    this.lastStatus = newStatusJson;
+                    this.lastStatusReceived = Date.now();
+                },
+
+                async updateTurnOffTime() {
+                    this.updateStatus(await (await fetch(`screen-timer/auto-turn-off-time?time=${this.lastStatus.autoTurnOffTime}`, {method:'POST'})).json());
+                },
+
+                async toggleAutoStopActive() {
+                    this.updateStatus(await (await fetch(`screen-timer/auto-turn-off-time/enabled?enabled=${!this.lastStatus.enabled}`, {method:'POST'})).json());
+                },
+
+                async doRestart() {
+                    this.updateStatus(await (await fetch('screen-timer/restart', {method:'POST'})).json());
+                },
+
+                async doStop() {
+                    this.updateStatus(await (await fetch('screen-timer/stop', {method:'POST'})).json());
+                },
+
+                getProjectedTimeLeft() {
+                    if (this.lastStatus.timerRunning === false) {
+                        return '--:--';
+                    } else {
+                        TextFill('#timer');
+                        let projectedEndTime = this.lastStatusReceived + this.lastStatus.secondsUntilNextAlert*1000;
+                        let projectedMillisLeft = projectedEndTime - Date.now();
+                        let minutesLeft = Math.floor(projectedMillisLeft / (60*1000));
+                        let secondsLeft = Math.floor((projectedMillisLeft - minutesLeft*60*1000) / 1000);
+                        return `${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+                    }
+                },
+
+                isAutoStopActive() {
+                    return this.lastStatus.autoTurnOffEnabled;
+                },
+            }));
+        });
+
+        TextFill('#timer');
+        window.onresize=()=>TextFill('#timer');
+    </script>
+
+</body>
+
+</html>
